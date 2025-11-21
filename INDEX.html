@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesquisa M3 - Segurança Digital</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            font-family: "Inter", system-ui, sans-serif;
+            scroll-behavior: smooth;
+            min-height: 100vh;
+        }
+
+        .bg-custom-gradient {
+            /* Seu gradiente radial */
+            background: radial-gradient(
+                circle at center,
+                #111111 0%,      
+                ##111111 20%,     
+                #F5A6C7 55%,     
+                #9DC7FF 80%,     
+                #0000CD 100%     
+            );
+            position: relative;
+            overflow: hidden;
+            /* Adiciona o ruído diretamente aqui para simplificar a aplicação */
+            background-image: 
+                url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICAgIDxmaWx0ZXIgaWQ9Im5vaXNlIj4KICAgICAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMS4yIiBudW1PY3RhdmVlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPgogICAgPC9maWx0ZXI+CiAgICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCojbm9pc2UpIiBvcGFjaXR5PSIxIi8+Cjwvc3ZnPg=="),
+                radial-gradient(circle at center, #F5A6C7 1%, #F5A6C7 3%, #9DC7FF 80%, #0000CD 100%);
+            background-size: cover, auto; /* Ajusta o ruído para cobrir e o gradiente para auto */
+            background-blend-mode: overlay; /* Mistura os dois backgrounds */
+        }
+        /* ============================================================ */
+
+        @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.8s ease-out forwards; }
+
+        @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .animate-scale-in { animation: scale-in 0.6s ease-out forwards; }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
+            background: #0000CD
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, .4);
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .toast-message {
+            background-color: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            animation: slide-in .5s forwards, fade-out .5s 4s forwards;
+        }
+
+        @keyframes slide-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+    </style>
+</head>
+
+<body class="bg-custom-gradient text-gray-800">
+
+    <div id="toast-container"></div>
+    <div id="app" class="min-h-screen overflow-x-hidden"></div>
+
+<script>
+let state = {
+    started: false,
+    rating1: null,
+    rating2: null,
+    rating3: null,
+    referralCompany: "",
+    referralContact: "",
+    referralMessage: "",
+    feedback: "",
+    submitted: false,
+    showAverage: false,
+};
+
+function showToast(message) {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = "toast-message";
+    toast.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${message}`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 4500);
+}
+
+function scrollToElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+}
+
+function getIconSVG(name, classes) {
+    if (name === "M3Logo") {
+        return `<img src="https://tse4.mm.bing.net/th/id/OIP.dWM-97rZjg6pCiaxhY3T3wHaHa" class="${classes}" />`;
+    }
+
+    const icons = {
+        Shield: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+        Users: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+        ArrowDown: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`
+    };
+
+    return icons[name] || "";
+}
+
+function getAverageScore() { return state.rating1 || 0; }
+function isPromoter() {
+    const total = (state.rating1 || 0) + (state.rating2 || 0) + (state.rating3 || 0);
+    return total >= 24;
+}
+
+function handleStartSurvey() {
+    state.started = true;
+    updateUI();
+    setTimeout(() => scrollToElement("question-1"), 300);
+}
+
+function handleRatingChange(key, value) {
+    state[key] = value;
+
+    if (key === "rating1") {
+        state.showAverage = true;
+        updateUI();
+        setTimeout(() => scrollToElement("question-2"), 300);
+    } else if (key === "rating2") {
+        updateUI();
+        setTimeout(() => scrollToElement("question-3"), 300);
+    } else if (key === "rating3") {
+        updateUI();
+        const next = isPromoter() ? "promoter-section" : "feedback-section";
+        setTimeout(() => scrollToElement(next), 300);
+    }
+
+    updateUI();
+}
+
+function sendToSheet() {
+    const url = "https://script.google.com/macros/s/AKfycbzprWZsP4dS9T5YWhWGtphVoe9DvQG9fcAJqldZ7_-tr5SSK6bLDtaoogaXXUKg0EsH/exec";
+    const payload = {
+        rating1: state.rating1,
+        rating2: state.rating2,
+        rating3: state.rating3,
+        referralCompany: state.referralCompany,
+        referralContact: state.referralContact,
+        referralMessage: state.referralMessage,
+        feedback: state.feedback
+    };
+
+    fetch(url, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(response => {
+        if (response.result === "success") {
+            showToast("Respostas enviadas com sucesso!");
+        } else {
+            showToast("Erro ao enviar respostas: " + response.error);
+        }
+    })
+    .catch(err => {
+        showToast("Erro ao enviar respostas: " + err);
+    });
+}
+
+function handleSubmit(e) {
+    e.preventDefault();
+    state.submitted = true;
+    showToast("Obrigado por sua participação!");
+    sendToSheet(); // envia os dados para o Google Sheet
+    updateUI();
+}
+
+function renderSliderQuestion(id, questionText, ratingKey, currentValue) {
+    const labels = Array.from({ length: 10 }, (_, i) => i + 1);
+
+    return `
+    <div id="${id}" class="max-w-4xl w-full p-10 rounded-3xl bg-white/10 text-center shadow-2xl backdrop-blur-sm animate-fade-in border border-white/20">
+        <h2 class="text-white text-3xl font-bold mb-10">${questionText}</h2>
+
+        <div class="relative">
+            <input type="range" min="1" max="10"
+                value="${currentValue ?? 1}"
+                oninput="
+                    document.getElementById('val-${id}').textContent = this.value;
+                    document.getElementById('thumb-${id}').style.left = 'calc(' + ((this.value - 1) * 100 / 9) + '%)';"
+                onmouseup="handleRatingChange('${ratingKey}', parseInt(this.value))"
+                ontouchend="handleRatingChange('${ratingKey}', parseInt(this.value))"
+            >
+            <div id="thumb-${id}" class="absolute top-1/2 -translate-y-1/2 bg-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-md pointer-events-none"
+                style="left: calc(${(currentValue ?? 1 - 1) * 100 / 9}%); margin-left:-16px;">
+                <span id="val-${id}">${currentValue ?? 1}</span>
+            </div>
+        </div>
+
+        <div class="flex justify-between text-white/70 text-sm mt-3">
+            ${labels.map(n => `<span>${n}</span>`).join("")}
+        </div>
+    </div>`;
+}
+
+function renderAverageCard() {
+    if (!state.showAverage) return "";
+    return `
+    <div class="fixed top-4 right-4 bg-white border p-3 rounded-xl shadow-lg text-center animate-fade-in">
+        <span class="text-gray-600 text-xs">Média</span>
+        <div class="text-blue-600 text-2xl font-bold">${getAverageScore()}</div>
+    </div>`;
+}
+
+function renderSubmittedScreen() {
+    return `
+    <div class="min-h-screen flex items-center justify-center text-center p-10">
+        <div>
+            <div class="flex justify-center mb-6">
+                <div class="mb-6">${getIconSVG("M3Logo", "w-28 h-28 mx-auto rounded-full object-cover aspect-square")}</div>
+            </div>
+            <h1 class="text-white font-bold mb-6" style="font-size: 50px;">Obrigado!</h1>
+            <p class="text-white">Sua participação ajuda a M3 a proteger o futuro.</p>
+        </div>
+    </div>`;
+}
+
+function updateUI() {
+    const app = document.getElementById("app");
+
+    if (state.submitted) {
+        app.innerHTML = renderSubmittedScreen();
+        return;
+    }
+
+    app.innerHTML = `
+        <section class="min-h-screen flex items-center justify-center text-center p-10">
+            <div>
+                <div class="mb-6">${getIconSVG("M3Logo", "w-24 h-24 mx-auto rounded-full object-cover aspect-square")}</div>
+                <h1 class="text-white text-4xl font-bold mb-4">Queremos ouvir você</h1>
+                <p class="text-white/70 mb-6">Sua opinião é essencial para evoluirmos nossa segurança digital.</p>
+
+                ${!state.started ? `
+                    <button onclick="handleStartSurvey()" class="bg-white text-blue-600 px-8 py-3 rounded-full font-semibold">
+                        Iniciar Pesquisa
+                    </button>
+                ` : `
+                    <div class="mt-8 animate-bounce">${getIconSVG("ArrowDown", "w-10 h-10 text-white/60 mx-auto")}</div>
+                `}
+            </div>
+        </section>
+
+        ${state.started ? `
+            <section id="question-1" class="min-h-screen flex items-center justify-center p-10">
+                ${renderSliderQuestion("question-1", "Em uma escala de 0 a 10, o quanto você indicaria nossos serviços a um amigo ou colega?", "rating1", state.rating1)}
+            </section>
+
+            ${state.rating1 !== null ? `
+            <section id="question-2" class="min-h-screen flex items-center justify-center p-10">
+                ${renderSliderQuestion("question-2", "Como você avalia a performance e confiabilidade dos nossos produtos na sua empresa?", "rating2", state.rating2)}
+            </section>` : ""}
+
+            ${state.rating2 !== null ? `
+            <section id="question-3" class="min-h-screen flex items-center justify-center p-10">
+                ${renderSliderQuestion("question-3", "Qual o seu nível de satisfação com o nosso Suporte Técnico?", "rating3", state.rating3)}
+            </section>` : ""}
+
+            ${state.rating3 !== null && isPromoter() ? `
+            <section id="promoter-section" class="min-h-screen p-10 flex items-center justify-center">
+                <div class="bg-white shadow-xl rounded-2xl p-8 max-w-xl w-full">
+                    <h2 class="text-xl font-bold mb-4">
+                        <p>O Brasil é o segundo país que mais sofre ataques de hackers. Deixe abaixo o nome e o telefone de alguém que precisa desse cuidado empresarial. <p>Vamos juntos proteger mais empresas no Brasil.</p></h2>
+                    <input type="text" placeholder="Escreva o seu nome e da sua empresa" class="border p-3 rounded w-full mb-3"
+                        oninput="state.referralCompany=this.value" value="${state.referralCompany}">
+                    <input type="text" placeholder="O nome de quem você está indicando" class="border p-3 rounded w-full mb-3"
+                        oninput="state.referralContact=this.value" value="${state.referralContact}">
+                    <textarea placeholder="O contato de quem você está indicando: Telefone ou/e e-mail" class="border p-3 rounded w-full mb-3"
+                        oninput="state.referralMessage=this.value">${state.referralMessage}</textarea>
+
+                    <button onclick="scrollToElement('feedback-section')"
+                        class="bg-blue-600 text-white w-full py-3 rounded-full">
+                        Continuar
+                    </button>
+                </div>
+            </section>` : ""}
+
+            ${state.rating3 !== null ? `
+            <section id="feedback-section" class="min-h-screen p-10 flex items-center justify-center">
+                <form onsubmit="handleSubmit(event)" class="bg-white shadow-xl p-8 rounded-2xl max-w-xl w-full">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Deixe seu feedback</h2>
+                    <textarea class="border p-4 rounded w-full mb-4 min-h-[150px]"
+                        required oninput="state.feedback=this.value">${state.feedback}</textarea>
+                    <button class="bg-blue-600 text-white w-full py-3 rounded-full">Enviar</button>
+                </form>
+            </section>` : ""}` : ""}
+
+    ${renderAverageCard()}`;
+}
+
+updateUI();
+</script>
+</body>
+</html>
